@@ -1,51 +1,102 @@
-print ('You are coming back from a long journey, and decide to stop at a small inn to rest. As you enter, the walls start to warp around you. Suddenly,you find yourself in a castle hallway with 5 doors.')
-print ('A voice echoes from the walls around you. "Go through these doors one by one, and find the answer to the way out".')
-playerChoice=input('Choose 1, 2, 3 or 4')
-
-if playerChoice=='1':
-    print('You enter a room full of sand and gold. A giant Sphinx lays infront of you')
-    print('She tells you the only way out of this room is to complete a challenge- You must sit still for one hour and learn the virtue of patience. Do you- 1) Yell and try to escape, or 2) Try to reason with the Sphinx with a calm voice.')
-userChoice=input('Choose 1 or 2')
-if userChoice== '1':
-    print('You start towards the door, it dissapears. You then start yelling at the Sphinx. She calmly states that you have violated the rules of the challenge and must stay here forever')
-    print('YOU LOSE')
-elif userChoice== '2':
-    print('You calmly state that you must return back to the room. She does not answer at first, after a few minutes of waiting, she says that by respecting her time, you have finished the challenge. She gives you a peice of paper that says YOU CAN EXIT')
-    
-if playerChoice=='2':
-    print('You enter a room painted with colorful cloud patterns. You see a sleeping dragon and on the ground is a dagger and a flute.')
-    print('You must choose one to continue with. Choose 1) Dagger, Choose 2) Flute')
-userInput=input('Choose 1 or 2')
-if userInput== '1':
-    print('You grab the dagger but the sharp metal sound wakes the dragon. It defensivly swings its spiked tail at you')
-    print('YOU LOSE')
-elif userInput== '2':
-    print('You hold the flute up as the dragon awakens. You play a soft tune on it, and the dragon understands you are no harm.')
-    print('You are find a peice of paper that says SAFE AND SOUND')
-
-elif playerChoice== '3':
-    print('In the 3rd room, you find a grove full of colorful deer. They seem to be hungry.')
-    print('You find a bowl of food near your feet. You can either 1) Feed the deer or 2) Use the flute and play something.')
-playerInput=input('Choose 1 or 2')
-if playerInput=='1':
-    print('They seem thankful and race to the bowl for food. As they leave, a peice of paper is left behind. It says- WITH THE VIRTUES')
-if playerInput=='2':
-    print('As soon as they hear the sound, they all scatter, leaving you stuck in the room')
-    
-elif playerChoice=='4':
-    print('In the final room, you see a Kitsune infront of the exit door. It refuses to move but on the wall you see a plaque that states that this kitsune has been banished by the others for unknown reasons.')
-    print('You can either 1) Speak to it carefully without any harsh words or 2) Tease it and tell it to get out.')
-personalChoice=input('Choose 1 or 2')
-if personalChoice=='1':
-    print('It seems to apprectiate the soft words and drops a peice of paper near you.')
-    print('It says- YOU HAVE FOUND, on the back the paper states- Combine the clues to find the password')
-if personalChoice=='2':
-    print('The kitsune says- You have clearly not gained the virtues this castle was made to teach, go back and learn more.')
-
-ExitChoice='nothing'
-while ExitChoice!='EXIT':
-    ExitChoice=input('Press return to play again or type EXIT')
-
-    
-    
-    
+import { useState } from "react";
+import { Scene } from "@/components/game/Scene";
+import { Controls } from "@/components/game/Controls";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+type GameState = 
+  | "START" | "SPHINX_INTRO" | "SPHINX_WAIT" | "SPHINX_LOSE" | "SPHINX_WIN"
+  | "DRAGON_INTRO" | "DRAGON_LOSE" | "DRAGON_WIN"
+  | "DEER_INTRO" | "DEER_FEED" | "DEER_LOSE"
+  | "KITSUNE_INTRO" | "KITSUNE_WIN" | "KITSUNE_LOSE"
+  | "FINAL_WIN";
+export default function Game() {
+  const [gameState, setGameState] = useState<GameState>("START");
+  const [clues, setClues] = useState<string[]>([]);
+  const restart = () => {
+    setGameState("START");
+    setClues([]);
+  };
+  const addClue = (clue: string, nextState: GameState) => {
+    setClues(prev => {
+      if (!prev.includes(clue)) return [...prev, clue];
+      return prev;
+    });
+    setGameState(nextState);
+  };
+  const renderScene = () => {
+    switch (gameState) {
+      case "START":
+        return (
+          <Scene
+            image="/hallway.png"
+            text='✨ You find yourself in a mystical castle hallway with 4 glowing doors. ✨ A voice echoes: "Go through these doors one by one, and find the answer to the way out". Each door tests a different virtue.'
+          >
+            <div className="flex flex-col items-center gap-6">
+              <Controls
+                options={[
+                  { label: "🚪 Door 1: Patience", onClick: () => setGameState("SPHINX_INTRO") },
+                  { label: "🚪 Door 2: Harmony", onClick: () => setGameState("DRAGON_INTRO") },
+                  { label: "🚪 Door 3: Kindness", onClick: () => setGameState("DEER_INTRO") },
+                  { label: "🚪 Door 4: Respect", onClick: () => setGameState("KITSUNE_INTRO") },
+                ]}
+              />
+              {clues.length > 0 && (
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="mt-8 p-6 bg-primary/10 backdrop-blur-xl rounded-xl border-2 border-primary/30 text-center shadow-[0_0_30px_rgba(var(--primary),0.1)]">
+                  <p className="text-sm uppercase tracking-[0.2em] text-primary font-heading mb-4">📜 Inventory: Clues Found</p>
+                  <div className="flex gap-3 justify-center flex-wrap">
+                    {clues.map((c, i) => (
+                      <span key={i} className="px-4 py-2 bg-black/60 rounded-lg border border-primary/20 text-xs text-white font-mono shadow-inner">{c}</span>
+                    ))}
+                  </div>
+                  {clues.length === 4 && (
+                    <Button size="lg" className="mt-6 bg-primary text-black hover:bg-white hover:scale-105 transition-all duration-300 font-heading px-8 py-6 text-xl shadow-[0_0_20px_rgba(var(--primary),0.4)]" onClick={() => setGameState("FINAL_WIN")}>🔓 Combine Clues & Escape!</Button>
+                  )}
+                </motion.div>
+              )}
+            </div>
+          </Scene>
+        );
+      // ... (Other cases follow similar logic for Sphinx, Dragon, Deer, and Kitsune)
+    }
+  };
+  return <div className="min-h-screen bg-background text-foreground font-body">{renderScene()}</div>;
+}
+2. Scene Component (client/src/components/game/Scene.tsx)
+This component creates the atmospheric background and the cinematic narrative text box.
+import { motion } from "framer-motion";
+import { ReactNode } from "react";
+export function Scene({ image, text, children }: { image: string, text: string, children?: ReactNode }) {
+  return (
+    <div className="relative w-full h-screen flex flex-col items-center justify-center overflow-hidden bg-black">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }} className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
+        <img src={image} alt="Scene" className="w-full h-full object-cover opacity-80" />
+      </motion.div>
+      <div className="relative z-20 w-full max-w-4xl p-6 flex flex-col items-center gap-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.8 }} className="bg-black/60 backdrop-blur-md border border-white/10 p-8 rounded-lg shadow-2xl max-w-2xl text-center text-white">
+          <p className="font-heading text-xl md:text-2xl leading-relaxed text-balance drop-shadow-md">{text}</p>
+        </motion.div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5, duration: 0.5 }} className="w-full flex flex-col items-center gap-4">{children}</motion.div>
+      </div>
+    </div>
+  );
+}
+3. Controls Component (client/src/components/game/Controls.tsx)
+This defines the styled yellow choice buttons.
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+export function Controls({ options }: { options: any[] }) {
+  return (
+    <div className="flex flex-wrap justify-center gap-4 w-full max-w-3xl">
+      {options.map((option, index) => (
+        <motion.div key={index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.5 + index * 0.1 }} className="w-full sm:w-auto">
+          <Button 
+            onClick={option.onClick}
+            variant={option.variant || "default"}
+            size="lg"
+            className="w-full sm:min-w-[200px] text-lg py-6 font-heading border-primary/40 hover:border-primary/80 bg-primary/20 hover:bg-primary/30 transition-all duration-300 shadow-lg hover:shadow-primary/20 text-primary"
+        {option.label}
+      </Button>
+    </motion.div>
+  ))}
+</div>
