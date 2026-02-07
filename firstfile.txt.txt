@@ -1,17 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Scene } from "@/components/game/Scene";
 import { Controls } from "@/components/game/Controls";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { Volume2, VolumeX } from "lucide-react";
 type GameState = 
-  | "START" | "SPHINX_INTRO" | "SPHINX_WAIT" | "SPHINX_LOSE" | "SPHINX_WIN"
+  | "START"
+  | "INTRO_1" | "INTRO_2" | "INTRO_3"
+  | "SPHINX_INTRO" | "SPHINX_EXPLAIN" | "SPHINX_DOORS" | "SPHINX_LOSE_1" | "SPHINX_LOSE_2" | "SPHINX_WIN"
   | "DRAGON_INTRO" | "DRAGON_LOSE" | "DRAGON_WIN"
-  | "DEER_INTRO" | "DEER_FEED" | "DEER_LOSE"
-  | "KITSUNE_INTRO" | "KITSUNE_WIN" | "KITSUNE_LOSE"
+  | "DEER_INTRO" | "DEER_DOORS" | "DEER_LOSE_1" | "DEER_LOSE_2" | "DEER_WIN"
+  | "KITSUNE_INTRO" | "KITSUNE_LOSE" | "KITSUNE_WIN"
   | "FINAL_WIN";
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>("START");
   const [clues, setClues] = useState<string[]>([]);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Music Auto-play on first interaction
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.4;
+      if (!isMuted) {
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => console.log("Audio autoplay prevented"));
+        }
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [isMuted, gameState]);
+  const toggleMute = () => setIsMuted(!isMuted);
   const restart = () => {
     setGameState("START");
     setClues([]);
@@ -25,23 +45,44 @@ export default function Game() {
   };
   const renderScene = () => {
     switch (gameState) {
+      // --- INTRO SEQUENCE ---
       case "START":
         return (
-          <Scene
-            image="/hallway.png"
-            text='✨ You find yourself in a mystical castle hallway with 4 glowing doors. ✨ A voice echoes: "Go through these doors one by one, and find the answer to the way out". Each door tests a different virtue.'
-          >
+          <Scene image="/hallway.png" text='You are coming back from a long journey and decide to stop at a small inn.'>
+             <Controls options={[{ label: "Enter the Inn", onClick: () => setGameState("INTRO_1") }]} />
+          </Scene>
+        );
+      case "INTRO_1":
+        return (
+          <Scene image="/hallway.png" text='As you enter, the walls start to shift around you. You find yourself stuck in an old castle.'>
+             <Controls options={[{ label: "Look Around", onClick: () => setGameState("INTRO_2") }]} />
+          </Scene>
+        );
+      case "INTRO_2":
+        return (
+          <Scene image="/hallway.png" text='The door behind you disappears. A voice echoes: "Go through these doors to find the answers you have shunned."'>
+             <Controls options={[{ label: "Approach the Doors", onClick: () => setGameState("INTRO_3") }]} />
+          </Scene>
+        );
+      case "INTRO_3":
+        return (
+          <Scene image="/hallway.png" text='You stand in the hallway. Four mysterious doors lie ahead.'>
             <div className="flex flex-col items-center gap-6">
               <Controls
                 options={[
-                  { label: "🚪 Door 1: Patience", onClick: () => setGameState("SPHINX_INTRO") },
-                  { label: "🚪 Door 2: Harmony", onClick: () => setGameState("DRAGON_INTRO") },
-                  { label: "🚪 Door 3: Kindness", onClick: () => setGameState("DEER_INTRO") },
-                  { label: "🚪 Door 4: Respect", onClick: () => setGameState("KITSUNE_INTRO") },
+                  { label: "🚪 Door 1", onClick: () => setGameState("SPHINX_INTRO") },
+                  { label: "🚪 Door 2", onClick: () => setGameState("DRAGON_INTRO") },
+                  { label: "🚪 Door 3", onClick: () => setGameState("DEER_INTRO") },
+                  { label: "🚪 Door 4", onClick: () => setGameState("KITSUNE_INTRO") },
                 ]}
               />
+              
               {clues.length > 0 && (
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="mt-8 p-6 bg-primary/10 backdrop-blur-xl rounded-xl border-2 border-primary/30 text-center shadow-[0_0_30px_rgba(var(--primary),0.1)]">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mt-8 p-6 bg-primary/10 backdrop-blur-xl rounded-xl border-2 border-primary/30 text-center shadow-[0_0_30px_rgba(var(--primary),0.1)]"
+                >
                   <p className="text-sm uppercase tracking-[0.2em] text-primary font-heading mb-4">📜 Inventory: Clues Found</p>
                   <div className="flex gap-3 justify-center flex-wrap">
                     {clues.map((c, i) => (
@@ -49,54 +90,268 @@ export default function Game() {
                     ))}
                   </div>
                   {clues.length === 4 && (
-                    <Button size="lg" className="mt-6 bg-primary text-black hover:bg-white hover:scale-105 transition-all duration-300 font-heading px-8 py-6 text-xl shadow-[0_0_20px_rgba(var(--primary),0.4)]" onClick={() => setGameState("FINAL_WIN")}>🔓 Combine Clues & Escape!</Button>
+                    <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
+                      <Button 
+                        size="lg"
+                        className="mt-6 bg-primary text-black hover:bg-white hover:scale-105 transition-all duration-300 font-heading px-8 py-6 text-xl shadow-[0_0_20px_rgba(var(--primary),0.4)]"
+                        onClick={() => setGameState("FINAL_WIN")}
+                      >
+                        🔓 Combine Clues & Escape!
+                      </Button>
+                    </motion.div>
                   )}
                 </motion.div>
               )}
             </div>
           </Scene>
         );
-      // ... (Other cases follow similar logic for Sphinx, Dragon, Deer, and Kitsune)
+      // --- DOOR 1: SPHINX ---
+      case "SPHINX_INTRO":
+        return (
+          <Scene image="/sphinx.png" text="You enter a room full of sand and gold. A giant Sphinx lies before you. She says the only way out is to stay still for 1 hour to gain patience.">
+            <Controls
+              options={[
+                { label: "Try to Escape", variant: "destructive", onClick: () => setGameState("SPHINX_LOSE_1") },
+                { label: "Explain Situation", onClick: () => setGameState("SPHINX_EXPLAIN") },
+              ]}
+            />
+          </Scene>
+        );
+      
+      case "SPHINX_LOSE_1":
+        return (
+          <Scene image="/gameover.png" text='The door vanishes as you run toward it. The Sphinx growls: "You have broken the rules." YOU LOSE.'>
+            <Controls options={[{ label: "Try Again", onClick: restart }]} />
+          </Scene>
+        );
+      case "SPHINX_EXPLAIN":
+        return (
+          <Scene image="/sphinx.png" text="You calmly explain your situation. After a long silence, she allows you to pass. Two doors appear before you.">
+             <Controls options={[{ label: "Examine Doors", onClick: () => setGameState("SPHINX_DOORS") }]} />
+          </Scene>
+        );
+      case "SPHINX_DOORS":
+        return (
+          <Scene image="/sphinx_doors.png" text="Two doors appear: 1) A flower-covered door, and 2) A plain door. Which do you choose?">
+            <Controls
+              options={[
+                { label: "Flower Door", onClick: () => setGameState("SPHINX_LOSE_2") },
+                { label: "Plain Door", onClick: () => addClue("YOU MAY EXIT", "SPHINX_WIN") },
+              ]}
+            />
+          </Scene>
+        );
+      case "SPHINX_LOSE_2":
+        return (
+          <Scene image="/gameover.png" text='The room is empty. The door disappears behind you. YOU LOSE.'>
+            <Controls options={[{ label: "Try Again", onClick: restart }]} />
+          </Scene>
+        );
+      case "SPHINX_WIN":
+        return (
+          <Scene image="/win.png" text='Flowers bloom around you. A paper falls into your hand: "YOU MAY EXIT". This is the first clue.'>
+            <Controls options={[{ label: "Return to Hallway", onClick: () => setGameState("INTRO_3") }]} />
+          </Scene>
+        );
+      // --- DOOR 2: DRAGON ---
+      case "DRAGON_INTRO":
+        return (
+          <Scene image="/dragon.png" text="You enter a room of swirling clouds. A sleeping dragon rests inside. On the floor: a dagger and a flute.">
+            <Controls
+              options={[
+                { label: "Take Dagger", variant: "destructive", onClick: () => setGameState("DRAGON_LOSE") },
+                { label: "Take Flute", onClick: () => setGameState("DRAGON_WIN") },
+              ]}
+            />
+          </Scene>
+        );
+      case "DRAGON_LOSE":
+        return (
+          <Scene image="/gameover.png" text="The clang of the dagger wakes the dragon. It strikes defensively. YOU LOSE.">
+            <Controls options={[{ label: "Try Again", onClick: restart }]} />
+          </Scene>
+        );
+      case "DRAGON_WIN":
+        return (
+          <Scene image="/phoenix.png" text='You play a soft melody. The dragon senses peace. A phoenix appears and offers a feather. A note reads: "SAFE AND SOUND".'>
+            <Controls options={[{ label: "Take Feather", onClick: () => addClue("SAFE AND SOUND", "INTRO_3") }]} />
+          </Scene>
+        );
+      // --- DOOR 3: DEER ---
+      case "DEER_INTRO":
+        return (
+          <Scene image="/deer.png" text="You enter a grove filled with colorful deer. They look hungry. A bowl of food lies nearby.">
+            <Controls
+              options={[
+                { label: "Feed Them", onClick: () => setGameState("DEER_DOORS") },
+                { label: "Make Noise", variant: "destructive", onClick: () => setGameState("DEER_LOSE_1") },
+              ]}
+            />
+          </Scene>
+        );
+      case "DEER_LOSE_1":
+        return (
+          <Scene image="/gameover.png" text="The deer scatter in panic. Darkness closes in around you. YOU LOSE.">
+             <Controls options={[{ label: "Try Again", onClick: restart }]} />
+          </Scene>
+        );
+      case "DEER_DOORS":
+        return (
+          <Scene image="/deer_doors.png" text="The deer eat peacefully. Two doors open: 1) Painted with flowers, 2) Blue and black door.">
+             <Controls
+              options={[
+                { label: "Painted Flowers", onClick: () => addClue("WITH THE VIRTUES", "DEER_WIN") },
+                { label: "Blue & Black", variant: "destructive", onClick: () => setGameState("DEER_LOSE_2") },
+              ]}
+            />
+          </Scene>
+        );
+      case "DEER_LOSE_2":
+        return (
+          <Scene image="/void.png" text="You fall into an endless void. YOU LOSE.">
+             <Controls options={[{ label: "Try Again", onClick: restart }]} />
+          </Scene>
+        );
+      case "DEER_WIN":
+        return (
+          <Scene image="/gryphon.png" text='A gryphon bows before you. You receive the third clue: "WITH THE VIRTUES".'>
+            <Controls options={[{ label: "Return to Hallway", onClick: () => setGameState("INTRO_3") }]} />
+          </Scene>
+        );
+      // --- DOOR 4: KITSUNE ---
+      case "KITSUNE_INTRO":
+        return (
+          <Scene image="/kitsune.png" text="A Kitsune stands before the exit. A sign says it was banished for unknown reasons.">
+            <Controls
+              options={[
+                { label: "Speak Carefully", onClick: () => addClue("YOU HAVE FOUND", "KITSUNE_WIN") },
+                { label: "Use Harsh Words", variant: "destructive", onClick: () => setGameState("KITSUNE_LOSE") },
+              ]}
+            />
+          </Scene>
+        );
+      case "KITSUNE_WIN":
+        return (
+          <Scene image="/win.png" text='The Kitsune drops a paper: "YOU HAVE FOUND". On the back: "Combine the clues to find the answer you seek."'>
+            <Controls options={[{ label: "Return to Hallway", onClick: () => setGameState("INTRO_3") }]} />
+          </Scene>
+        );
+      case "KITSUNE_LOSE":
+        return (
+          <Scene image="/gameover.png" text='The Kitsune says: "You have not gained the virtues of this castle." YOU LOSE.'>
+            <Controls options={[{ label: "Try Again", onClick: restart }]} />
+          </Scene>
+        );
+      // --- FINALE ---
+      case "FINAL_WIN":
+        return (
+          <Scene image="/win.png" text={`The clues merge: "${clues.join(' ')}". The final door opens, revealing the path home. You have escaped!`}>
+            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 1, type: "spring" }}>
+              <Controls options={[{ label: "Play Again", onClick: restart }]} />
+            </motion.div>
+          </Scene>
+        );
+      default:
+        return <div>Unknown State</div>;
     }
   };
-  return <div className="min-h-screen bg-background text-foreground font-body">{renderScene()}</div>;
+  return (
+    <div className="min-h-screen bg-background text-foreground font-body selection:bg-primary selection:text-primary-foreground">
+      <audio ref={audioRef} src="/music.mp3" loop />
+      <button 
+        onClick={toggleMute}
+        className="fixed top-4 right-4 z-50 p-3 bg-black/50 hover:bg-black/70 rounded-full border border-white/20 text-white transition-all backdrop-blur-sm"
+        title={isMuted ? "Unmute Music" : "Mute Music"}
+      >
+        {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+      </button>
+      {renderScene()}
+    </div>
+  );
 }
-2. Scene Component (client/src/components/game/Scene.tsx)
-This component creates the atmospheric background and the cinematic narrative text box.
+
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
-export function Scene({ image, text, children }: { image: string, text: string, children?: ReactNode }) {
+interface SceneProps {
+  image: string;
+  text: string;
+  children?: ReactNode;
+}
+export function Scene({ image, text, children }: SceneProps) {
   return (
     <div className="relative w-full h-screen flex flex-col items-center justify-center overflow-hidden bg-black">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }} className="absolute inset-0 z-0">
+      {/* Background Image with Overlay */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+        className="absolute inset-0 z-0"
+      >
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
-        <img src={image} alt="Scene" className="w-full h-full object-cover opacity-80" />
+        <img 
+          src={image} 
+          alt="Scene" 
+          className="w-full h-full object-cover opacity-80"
+        />
       </motion.div>
+      {/* Content Container */}
       <div className="relative z-20 w-full max-w-4xl p-6 flex flex-col items-center gap-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.8 }} className="bg-black/60 backdrop-blur-md border border-white/10 p-8 rounded-lg shadow-2xl max-w-2xl text-center text-white">
-          <p className="font-heading text-xl md:text-2xl leading-relaxed text-balance drop-shadow-md">{text}</p>
+        
+        {/* Narrative Text */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.8 }}
+          className="bg-black/60 backdrop-blur-md border border-white/10 p-8 rounded-lg shadow-2xl max-w-2xl text-center text-white"
+        >
+          <p className="font-heading text-xl md:text-2xl leading-relaxed text-balance drop-shadow-md">
+            {text}
+          </p>
         </motion.div>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5, duration: 0.5 }} className="w-full flex flex-col items-center gap-4">{children}</motion.div>
+        {/* Controls/Choices */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5, duration: 0.5 }}
+          className="w-full flex flex-col items-center gap-4"
+        >
+          {children}
+        </motion.div>
       </div>
     </div>
   );
 }
-3. Controls Component (client/src/components/game/Controls.tsx)
-This defines the styled yellow choice buttons.
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-export function Controls({ options }: { options: any[] }) {
+interface Option {
+  label: string;
+  onClick: () => void;
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+}
+interface ControlsProps {
+  options: Option[];
+}
+export function Controls({ options }: ControlsProps) {
   return (
     <div className="flex flex-wrap justify-center gap-4 w-full max-w-3xl">
       {options.map((option, index) => (
-        <motion.div key={index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.5 + index * 0.1 }} className="w-full sm:w-auto">
+        <motion.div
+          key={index}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.5 + index * 0.1 }}
+          className="w-full sm:w-auto"
+        >
           <Button 
             onClick={option.onClick}
             variant={option.variant || "default"}
             size="lg"
             className="w-full sm:min-w-[200px] text-lg py-6 font-heading border-primary/40 hover:border-primary/80 bg-primary/20 hover:bg-primary/30 transition-all duration-300 shadow-lg hover:shadow-primary/20 text-primary"
-        {option.label}
-      </Button>
-    </motion.div>
-  ))}
-</div>
+          >
+            {option.label}
+          </Button>
+        </motion.div>
+      ))}
+    </div>
+);
+}
